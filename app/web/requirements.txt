@@ -7,4 +7,3 @@ opencv_python==4.7.0.72
 Pillow==10.1.0
 streamlit==1.28.2
 tensorflow==2.15.0
-tensorflow_macos==2.15.0
