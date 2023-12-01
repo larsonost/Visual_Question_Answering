@@ -1,51 +1,36 @@
-import cv2
-import imgaug.augmenters as iaa
 import numpy as np
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from keras.preprocessing.text import Tokenizer
+from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.models import Model
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.vgg16 import preprocess_input
+import nltk
+from nltk import word_tokenize
+nltk.download('punkt')
 
-# set up functions for data loader
-aug1 = iaa.Fliplr(0.5)
-aug2 = iaa.AddToBrightness((-30, -20))
-aug3 = iaa.LinearContrast((0.6, 0.75))
-
-
-def get_input1(que):
-    t = Tokenizer(filters='')
-    que_arr = (pad_sequences(t.texts_to_sequences(
-        [que]), maxlen=22, padding='post'))[0]
-    return que_arr
+# Load pre-trained VGG16 model and create a model to extract features from the last FC layer
+vgg_model = VGG16(weights='imagenet', include_top=True)
+features_model = Model(inputs=vgg_model.input,
+                       outputs=vgg_model.layers[-1].input)
 
 
-def get_input2(img):
+def get_answer(model, question, img, word_idx, top_answers_classes):
+    img = img.resize((224, 224))
+    img = np.array(img)
 
-    # img = cv2.imread(path)
-    img = np.array(img)[:, :, ::-1]
+    # Preprocess the input image and extract features
+    feature_list = [preprocess_input(
+        np.expand_dims(image.img_to_array(img), axis=0))]
+    img_features = features_model([feature_list], training=False)
 
-    if not isinstance(img, np.ndarray):
-        raise TypeError(f"Expected img to be a numpy array, got {type(img)}")
+    # Tokenize and encode the question
+    tok_list = word_tokenize(question.lower())
+    question_sequence = np.reshape(
+        [word_idx.get(token, 0) for token in tok_list], (1, len(tok_list)))
 
-    a = np.random.uniform()
-    # if a < 0.25:
-    #     img = aug1.augment_image(img)
-    # elif a < 0.5:
-    #     img = aug2.augment_image(img)
-    # elif a < 0.75:
-    #     img = aug3.augment_image(img)
-    # else:
-    #     img = img
-    img = cv2.resize(img, (224, 224))
+    # Load the trained LSTM model and predict the answer
+    # loaded_model = load_model('VGG19_LSTM/lstm_coco.h5')
+    answers_ids = np.argsort(model.predict(
+        [img_features, question_sequence])[0])[::-1]
 
-    img = np.array(img)/255.0
-
-    return img
-
-
-def generate_answer(model, question, img, labelencoder):
-    img_input = get_input2(img)
-    question_input = get_input1(question)
-    predicted = model.predict(
-        [np.expand_dims(question_input, axis=0), np.expand_dims(img_input, axis=0)])
-    predicted_answer = labelencoder.inverse_transform(
-        [np.argmax(predicted)])[0]
-    return predicted_answer
+    # Return the top 5 predicted answers
+    return [top_answers_classes[answers_ids[i]] for i in range(5)]

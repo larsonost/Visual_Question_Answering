@@ -2,9 +2,8 @@ import streamlit as st
 import pickle
 from PIL import Image
 import tensorflow as tf
-import joblib
 from generate_caption import generate_caption
-from answer_question import generate_answer
+from answer_question import get_answer
 from load_model import get_caption_model, get_vqa_model
 
 # load tokenizer
@@ -20,11 +19,14 @@ caption_model = get_caption_model(
     'app/image_caption/sim_weights.h5', tokenizer)
 
 
-# load labelencoder
-labelencoder = joblib.load("VGG19_LSTM_outdated/labelencoder_1123231222.pkl")
+# Load the list of top answer classes and word-to-index mapping
+with open('VGG19_LSTM/mode_answers.txt', 'r') as f:
+    top_answers_classes = [line.strip() for line in f]
+
+with open('VGG19_LSTM/word_idx', 'rb') as f:
+    word_idx = pickle.load(f)
 # load vaq model
-vqa_model = get_vqa_model(
-    'VGG19_LSTM_outdated/model_lstm_vgg19_1123231222.h5')
+vqa_model = get_vqa_model('VGG19_LSTM/lstm_coco.h5')
 
 
 # Set up the logo
@@ -34,7 +36,6 @@ st.image(logo_image, use_column_width=True)
 st.title("VisualHub")
 st.subheader(
     'Get auto-generated captions and answers to your questions about images!')
-# st.title("Image Captioning and Visual Question Answering Playground")
 
 # Upload image through Streamlit
 uploaded_file = st.file_uploader(
@@ -65,8 +66,8 @@ if uploaded_file is not None:
         with st.spinner("Making VQA prediction..."):
             # Make VQA prediction
             img = Image.open(uploaded_file)
-            vqa_predictions = generate_answer(
-                vqa_model, user_question, img, labelencoder)
+            vqa_predictions = get_answer(
+                vqa_model, user_question, img, word_idx, top_answers_classes)
         # Display the VQA predictions
         st.subheader("Answer from our VQA model:")
         st.write(vqa_predictions)
