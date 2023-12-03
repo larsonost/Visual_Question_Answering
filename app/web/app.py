@@ -33,7 +33,7 @@ vqa_model = get_vqa_model('VGG19_LSTM/lstm_coco.h5')
 logo_image = Image.open('app/images/logo.png')
 # Display the logo
 st.image(logo_image, use_column_width=True)
-st.title("VisualHub")
+st.title("Image Interact")
 st.subheader(
     'Get auto-generated captions and answers to your questions about images!')
 
