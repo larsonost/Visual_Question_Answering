@@ -29,7 +29,7 @@ def generate_sentence(question, answer, client=CLIENT):
     return sentence.content
 
 
-@st.cache
+@st.cache_resource()
 def load_model():
     """Load the caption and VQA models."""
     # load tokenizer
