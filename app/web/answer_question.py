@@ -5,7 +5,6 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.vgg16 import preprocess_input
 import nltk
 from nltk import word_tokenize
-from openai_api import generate_sentence
 nltk.download('punkt')
 
 # Load pre-trained VGG16 model and create a model to extract features from the last FC layer
@@ -35,4 +34,4 @@ def get_answer(model, question, img, word_idx, top_answers_classes):
 
     # Return the answer
     one_word_answer = top_answers_classes[answers_ids[0]]
-    return generate_sentence(question, one_word_answer)
+    return one_word_answer
