@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 from PIL import Image
+import random
 import tensorflow as tf
 from generate_caption import generate_caption
 from answer_question import get_answer
@@ -42,32 +43,42 @@ uploaded_file = st.file_uploader(
     "Choose an image...", type=['jpg', 'jpeg', 'png'])
 # Initialize session state
 if 'vqa_prediction_in_progress' not in st.session_state:
-    st.session_state.vqa_prediction_in_progress = False
+    st.session_state.captioned = False
 
 if uploaded_file is not None:
 
     # Display the uploaded image
     st.image(uploaded_file, caption="Uploaded Image.", use_column_width=True)
-    # if st.session_state.vqa_prediction_in_progress == False:
-    with st.spinner("Generating caption results..."):
-        # print(uploaded_file.name)
-        # Generate captions on the uploaded image
-        img = uploaded_file.read()
-        img_caption = generate_caption(
-            img, caption_model, tokenizer)
-    # Display the prediction results
-    st.subheader(img_caption)
-    st.session_state.vqa_prediction_in_progress = True
-    # Allow the user to input a question
-    user_question = st.text_input("Ask a question about the image:")
+    if st.session_state.captioned == False:
+        with st.spinner("Generating caption results..."):
+            # print(uploaded_file.name)
+            # Generate captions on the uploaded image
+            img = uploaded_file.read()
+            img_caption = generate_caption(
+                img, caption_model, tokenizer)
+        st.session_state.captioned = True
+    # Display the caption results
+    st.subheader("Auto-generated image caption:")
+    st.text(f'{img_caption.capitalize()}.')
 
+    st.divider()
+    st.subheader("Visual question answering:")
+    # Allow the user to input a question
+    question_list = ["What is the color of...",
+                     "How many...", "Dose it have..."]
+    prefilled_question = random.choice(question_list)
+    # Adding a submit button
+    user_question = st.text_input(
+        "Ask any question about the image you uploaded: ", placeholder=prefilled_question)
+    submit_button = st.button(label='Submit')
     # Provide VQA results when the user submits a question
-    if st.button("Submit") and user_question:
-        with st.spinner("Making VQA prediction..."):
+    if submit_button and user_question:
+        with st.spinner("Generating answers..."):
             # Make VQA prediction
             img = Image.open(uploaded_file)
-            vqa_predictions = get_answer(
+            vqa_answer = get_answer(
                 vqa_model, user_question, img, word_idx, top_answers_classes)
-        # Display the VQA predictions
-        st.subheader("Answer from our VQA model:")
-        st.write(vqa_predictions)
+            print(vqa_answer)
+        # Display the VQA vqa_answer
+        st.subheader("Auto-generated answer from our VQA model:")
+        st.text(vqa_answer)
